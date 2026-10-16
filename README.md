@@ -1,4 +1,4 @@
-# Square Rollo Printer v1.2
+# Square Rollo Printer v1.3
 
 Native macOS utility for printing Square-generated multipage PDF price labels to a Rollo X1040 using the working CUPS `lp` route, rather than Preview.
 
@@ -19,6 +19,12 @@ Open `SquareRolloPrinter.xcodeproj`, choose My Mac, then press Command-R. Drop i
 ## Positioning
 
 Artwork is centered by default. Use the horizontal and vertical sliders to shift the printed artwork up to 10 mm in either direction in 0.5 mm steps, or press **Center** to restore zero offsets. Positive horizontal values move right; positive vertical values move up. Offsets are stored locally on each Mac. The preview uses the same render function as printing. Recenter before changing label stock, and run a one-label test to ensure the barcode remains entirely within the printable area.
+
+## Saved printer calibration
+
+The **Save Calibration** button stores the current scale, horizontal shift, and vertical shift in macOS UserDefaults, scoped to the selected macOS printer queue name and the 2 × 1 inch stock size. **Load Saved** restores the last saved values; selecting a different printer automatically loads its saved calibration (or centered 100% defaults if none exists). Unsaved edits are discarded when switching printers, so save first. The app indicates when settings differ from the saved profile.
+
+Calibration settings are local to each Mac. Transferring the standalone app does **not** transfer calibration; calibrate and save separately on the playplace laptop. The app currently supports only 2 × 1 inch stock. If more sizes are added, their profiles will remain independent.
 
 ## Build a portable app
 
