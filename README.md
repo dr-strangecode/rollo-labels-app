@@ -1,4 +1,4 @@
-# Square Rollo Printer v1.1
+# Square Rollo Printer v1.2
 
 Native macOS utility for printing Square-generated multipage PDF price labels to a Rollo X1040 using the working CUPS `lp` route, rather than Preview.
 
@@ -10,11 +10,15 @@ Native macOS utility for printing Square-generated multipage PDF price labels to
 
 ## Run
 
-Open `SquareRolloPrinter.xcodeproj`, choose My Mac, then press Command-R. Drop in a Square PDF, select the printer, adjust scaling, and print.
+Open `SquareRolloPrinter.xcodeproj`, choose My Mac, then press Command-R. Drop in a Square PDF, select the printer, adjust scaling and positioning, and print.
 
 ## Scaling
 
 100% fits each source PDF page proportionally onto a 2 × 1 inch label. Larger values zoom into the label and can crop contents. Preview the first page and verify that the barcode scans before printing a large batch.
+
+## Positioning
+
+Artwork is centered by default. Use the horizontal and vertical sliders to shift the printed artwork up to 10 mm in either direction in 0.5 mm steps, or press **Center** to restore zero offsets. Positive horizontal values move right; positive vertical values move up. Offsets are stored locally on each Mac. The preview uses the same render function as printing. Recenter before changing label stock, and run a one-label test to ensure the barcode remains entirely within the printable area.
 
 ## Build a portable app
 
