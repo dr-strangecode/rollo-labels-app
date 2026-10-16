@@ -9,6 +9,8 @@ struct ContentView: View {
     @State private var pdfDocument: PDFDocument?
     @State private var scaledPreview: PDFDocument?
     @AppStorage("scalePercent") private var scalePercent = 100.0
+    @AppStorage("horizontalOffsetMM") private var horizontalOffsetMM = 0.0
+    @AppStorage("verticalOffsetMM") private var verticalOffsetMM = 0.0
     @State private var pageRange = ""
     @State private var message = "Select a Square PDF to get started."
     @State private var working = false
@@ -86,6 +88,41 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             }
 
+            GroupBox("Position on label") {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        Text("Horizontal")
+                            .frame(width: 78, alignment: .leading)
+                        Slider(value: $horizontalOffsetMM, in: -10...10, step: 0.5)
+                            .onChange(of: horizontalOffsetMM) { _ in refreshPreview() }
+                        Text(String(format: "%+.1f mm", horizontalOffsetMM))
+                            .monospacedDigit()
+                            .frame(width: 72, alignment: .trailing)
+                    }
+                    HStack {
+                        Text("Vertical")
+                            .frame(width: 78, alignment: .leading)
+                        Slider(value: $verticalOffsetMM, in: -10...10, step: 0.5)
+                            .onChange(of: verticalOffsetMM) { _ in refreshPreview() }
+                        Text(String(format: "%+.1f mm", verticalOffsetMM))
+                            .monospacedDigit()
+                            .frame(width: 72, alignment: .trailing)
+                    }
+                    HStack {
+                        Text("Positive horizontal moves right; positive vertical moves up.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Spacer()
+                        Button("Center") {
+                            horizontalOffsetMM = 0
+                            verticalOffsetMM = 0
+                            refreshPreview()
+                        }
+                    }
+                }
+                .padding(.vertical, 3)
+            }
+
             GroupBox("Print layout preview (first label)") {
                 if let scaledPreview {
                     PDFPreview(document: scaledPreview)
@@ -152,6 +189,8 @@ struct ContentView: View {
         guard let url = pdfURL else { scaledPreview = nil; return }
         do {
             let renderedURL = try LabelPDFRenderer.render(source: url, scalePercent: scalePercent,
+                                                           horizontalOffsetMM: horizontalOffsetMM,
+                                                           verticalOffsetMM: verticalOffsetMM,
                                                            firstPageOnly: true)
             scaledPreview = PDFDocument(url: renderedURL)
             // PDFKit retains the loaded document; the generated file is a temporary preview.
@@ -185,12 +224,16 @@ struct ContentView: View {
         }
         let printer = selectedPrinter
         let scale = scalePercent
+        let xOffset = horizontalOffsetMM
+        let yOffset = verticalOffsetMM
         working = true
         message = "Submitting job…"
         DispatchQueue.global(qos: .userInitiated).async {
             let result: Result<String, Error>
             do {
-                let printURL = try LabelPDFRenderer.render(source: url, scalePercent: scale)
+                let printURL = try LabelPDFRenderer.render(source: url, scalePercent: scale,
+                                                           horizontalOffsetMM: xOffset,
+                                                           verticalOffsetMM: yOffset)
                 result = .success(try PrintService.submit(pdf: printURL, printer: printer,
                     pageRange: range.isEmpty ? nil : range))
             }
