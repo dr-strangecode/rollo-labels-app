@@ -8,9 +8,12 @@ struct ContentView: View {
     @State private var pdfURL: URL?
     @State private var pdfDocument: PDFDocument?
     @State private var scaledPreview: PDFDocument?
-    @AppStorage("scalePercent") private var scalePercent = 100.0
-    @AppStorage("horizontalOffsetMM") private var horizontalOffsetMM = 0.0
-    @AppStorage("verticalOffsetMM") private var verticalOffsetMM = 0.0
+    @State private var scalePercent = 100.0
+    @State private var horizontalOffsetMM = 0.0
+    @State private var verticalOffsetMM = 0.0
+    @State private var savedCalibration: CalibrationProfile?
+    private let labelStockID = "2x1-in"
+
     @State private var pageRange = ""
     @State private var message = "Select a Square PDF to get started."
     @State private var working = false
@@ -123,6 +126,25 @@ struct ContentView: View {
                 .padding(.vertical, 3)
             }
 
+            GroupBox("Saved calibration · 2 × 1 in") {
+                HStack(spacing: 10) {
+                    if savedCalibration != nil {
+                        Label(hasUnsavedChanges ? "Unsaved adjustments" : "Saved settings loaded",
+                              systemImage: hasUnsavedChanges ? "pencil.circle" : "checkmark.circle")
+                            .foregroundStyle(hasUnsavedChanges ? .orange : .secondary)
+                    } else {
+                        Label("No saved calibration for this printer", systemImage: "info.circle")
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    Button("Load Saved") { loadCalibration() }
+                        .disabled(selectedPrinter.isEmpty || savedCalibration == nil)
+                    Button("Save Calibration") { saveCalibration() }
+                        .disabled(selectedPrinter.isEmpty || working)
+                }
+                .padding(.vertical, 3)
+            }
+
             GroupBox("Print layout preview (first label)") {
                 if let scaledPreview {
                     PDFPreview(document: scaledPreview)
@@ -147,8 +169,66 @@ struct ContentView: View {
             }
         }
         .padding(20)
-        .onAppear { refreshPrinters() }
+        .onAppear {
+            refreshPrinters()
+            loadCalibration()
+        }
+        .onChange(of: selectedPrinter) { _ in loadCalibration() }
         .onOpenURL { loadPDF($0) }
+    }
+
+    private var currentCalibration: CalibrationProfile {
+        CalibrationProfile(scalePercent: scalePercent,
+                           horizontalOffsetMM: horizontalOffsetMM,
+                           verticalOffsetMM: verticalOffsetMM)
+    }
+
+    private var hasUnsavedChanges: Bool {
+        guard let savedCalibration else { return false }
+        return savedCalibration != currentCalibration
+    }
+
+    private var calibrationKey: String {
+        // Printer queue name identifies a macOS printer; label stock is part of the key.
+        // This prevents calibration for one label size from affecting another.
+        "calibration.\(labelStockID).\(selectedPrinter)"
+    }
+
+    private func loadCalibration() {
+        guard !selectedPrinter.isEmpty else {
+            savedCalibration = nil
+            applyCalibration(.default)
+            return
+        }
+        if let data = UserDefaults.standard.data(forKey: calibrationKey),
+           let profile = try? JSONDecoder().decode(CalibrationProfile.self, from: data) {
+            savedCalibration = profile
+            applyCalibration(profile)
+            message = "Loaded saved calibration for \(selectedPrinter) (2 × 1 in)."
+        } else {
+            savedCalibration = nil
+            applyCalibration(.default)
+            message = "No saved 2 × 1 in calibration for \(selectedPrinter); using centered defaults."
+        }
+    }
+
+    private func applyCalibration(_ profile: CalibrationProfile) {
+        scalePercent = profile.scalePercent
+        horizontalOffsetMM = profile.horizontalOffsetMM
+        verticalOffsetMM = profile.verticalOffsetMM
+        refreshPreview()
+    }
+
+    private func saveCalibration() {
+        guard !selectedPrinter.isEmpty else { return }
+        let profile = currentCalibration
+        guard let data = try? JSONEncoder().encode(profile) else {
+            message = "Could not encode calibration."
+            return
+        }
+        UserDefaults.standard.set(data, forKey: calibrationKey)
+        savedCalibration = profile
+        message = "Saved 2 × 1 in calibration for \(selectedPrinter)."
     }
 
     private func choosePDF() {
@@ -284,4 +364,14 @@ private struct ContentUnavailableViewPlaceholder: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
+}
+
+private struct CalibrationProfile: Codable, Equatable {
+    let scalePercent: Double
+    let horizontalOffsetMM: Double
+    let verticalOffsetMM: Double
+
+    static let `default` = CalibrationProfile(scalePercent: 100,
+                                                horizontalOffsetMM: 0,
+                                                verticalOffsetMM: 0)
 }
