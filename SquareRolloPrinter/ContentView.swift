@@ -131,7 +131,7 @@ struct ContentView: View {
                     if savedCalibration != nil {
                         Label(hasUnsavedChanges ? "Unsaved adjustments" : "Saved settings loaded",
                               systemImage: hasUnsavedChanges ? "pencil.circle" : "checkmark.circle")
-                            .foregroundStyle(hasUnsavedChanges ? .orange : .secondary)
+                            .foregroundColor(hasUnsavedChanges ? Color.orange : Color.secondary)
                     } else {
                         Label("No saved calibration for this printer", systemImage: "info.circle")
                             .foregroundStyle(.secondary)
